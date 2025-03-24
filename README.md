@@ -12,11 +12,21 @@ npm install react-native-more-sentinal
 
 
 ```js
-import { multiply } from 'react-native-more-sentinal';
+import Sentinal from 'react-native-more-sentinal';
 
-// ...
+// Initialise the sdk
+ Sentinal.init({
+    api_key: 'RGVmYXVsdEFwaUtleQ',
+    url: 'https://events-qt.moreretail.in/',
+    env: 'dev',
+  });
 
-const result = await multiply(3, 7);
+// set the user id
+Sentinal.setUserId('12345')
+
+//track events
+ Sentinal.trackEvents(eventName, payload);
+
 ```
 
 

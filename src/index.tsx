@@ -4,15 +4,22 @@ import uuid from 'react-native-uuid';
 import Geolocation from 'react-native-geolocation-service';
 import { check, PERMISSIONS } from 'react-native-permissions';
 import SQLiteDB from './db/SQLiteDB';
-import type { Location } from './db/model';
+import APIRequest from './API';
+import type { Config, Location } from './db/model';
 
 const sessionId = uuid.v4();
 
 export default class AnalyticsManager {
   static env?: string;
   static userId?: string;
+  static apiKey?: string;
+  static url?: string;
 
-  static init() {
+  static init(config: Config) {
+    AnalyticsManager.env = config.env;
+    AnalyticsManager.url = config.url;
+    AnalyticsManager.apiKey = config.api_key;
+    APIRequest.init(config.url, config.api_key);
     SQLiteDB.populateDB();
   }
 
@@ -74,7 +81,7 @@ export default class AnalyticsManager {
     });
   }
 
-  static async sendDataToServer(event: string, payload: {}) {
+  static async trackEvents(event: string, payload: any) {
     const deviceID = await DeviceInfo.getUniqueId();
     const manufacturer = await DeviceInfo.getDeviceName();
     const carrier = await DeviceInfo.getCarrier();
@@ -109,35 +116,32 @@ export default class AnalyticsManager {
       eventData.latitude = location?.latitude;
       eventData.longitude = location?.longitude;
     }
-    console.log('Events ', eventData);
-    // const eventStreamingAPI = new EventStreamingAPI();
-    // try {
-    //   const resp = await eventStreamingAPI.sendEvents(eventData);
-    //   if (!resp.data?.success) {
-    //     SQLiteDB.saveEvents(JSON.stringify(eventData));
-    //   }
-    // } catch (error) {
-    SQLiteDB.saveEvents(JSON.stringify(eventData));
-    // }
+    try {
+      const resp = await APIRequest.sendEvents(eventData);
+      if (!resp.data?.success) {
+        SQLiteDB.saveEvents(JSON.stringify(eventData));
+      }
+    } catch (error) {
+      SQLiteDB.saveEvents(JSON.stringify(eventData));
+    }
   }
 
   static async syncOfflineData() {
     const offlineEvents = await SQLiteDB.getEvents();
     if (Array.isArray(offlineEvents) && offlineEvents.length > 0) {
-      // const eventStreamingAPI = new EventStreamingAPI();
       for (let eventData of offlineEvents) {
         const { id, event } = eventData;
         if (event) {
-          //   try {
-          //     const resp = await EventStreaming.sendEvents(JSON.parse(event));
-          //     if (resp.data?.success) {
-          //       await SQLiteDB.deleteEventId(id);
-          //     }
-          //   } catch (error) {
-          //     if (__DEV__) {
-          //       console.log('Offline sync error ', error);
-          //     }
-          //   }
+          try {
+            const resp = await APIRequest.sendEvents(JSON.parse(event));
+            if (resp.data?.success) {
+              await SQLiteDB.deleteEventId(id);
+            }
+          } catch (error) {
+            if (__DEV__) {
+              console.log('Offline sync error ', error);
+            }
+          }
         } else {
           await SQLiteDB.deleteEventId(id);
         }

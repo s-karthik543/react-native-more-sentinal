@@ -15,3 +15,9 @@ export interface Location {
   latitude: number;
   longitude: number;
 }
+
+export interface Config {
+  url: string;
+  env: string;
+  api_key: string;
+}

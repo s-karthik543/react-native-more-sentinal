@@ -16,8 +16,8 @@ import Sentinal from 'react-native-more-sentinal';
 
 // Initialise the sdk
  Sentinal.init({
-    api_key: 'RGVmYXVsdEFwaUtleQ',
-    url: 'https://events-qt.moreretail.in/',
+    api_key: '',
+    url: '',
     env: 'dev',
   });
 

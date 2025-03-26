@@ -112,13 +112,17 @@ export default class AnalyticsManager {
         is_charging: isCharging,
       },
     };
-    if (location?.latitude > 0 && location?.longitude > 0) {
+    // if (location?.latitude > 0 && location?.longitude > 0) {
       eventData.latitude = location?.latitude;
       eventData.longitude = location?.longitude;
+    // }
+    if(__DEV__){
+      console.log("events ",eventData)
     }
     try {
       const resp = await APIRequest.sendEvents(eventData);
-      if (!resp.data?.success) {
+      console.log("resp ",resp)
+      if (!resp.success) {
         SQLiteDB.saveEvents(JSON.stringify(eventData));
       }
     } catch (error) {

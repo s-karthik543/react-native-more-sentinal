@@ -19,13 +19,12 @@ export default class APIRequest {
     return new Promise((resolve) => {
       APIRequest.instance
         .post('/events', data)
-        .then((result: AxiosResponse) => {
-          resolve({ data: result });
+        .then((_: AxiosResponse) => {
+          resolve({ success: true });
         })
-        .catch((error: AxiosError) => {
+        .catch((_: AxiosError) => {
           resolve({
-            status: error?.response?.status || 403,
-            data: error?.response?.data || { message: 'Something went wrong' },
+            success: false,
           });
         });
     });

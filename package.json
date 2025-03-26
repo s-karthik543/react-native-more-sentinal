@@ -1,6 +1,6 @@
 {
   "name": "react-native-more-sentinal",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "To track the events",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",

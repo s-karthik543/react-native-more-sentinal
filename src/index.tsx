@@ -27,6 +27,11 @@ export default class AnalyticsManager {
     AnalyticsManager.userId = id;
   }
 
+  static clearData() {
+    AnalyticsManager.userId = undefined;
+    SQLiteDB.deleteAllEvents();
+  }
+
   static getDeviceLocation(): Promise<Location> {
     return new Promise((resolve) => {
       if (Platform.OS === 'android') {
@@ -113,15 +118,17 @@ export default class AnalyticsManager {
       },
     };
     // if (location?.latitude > 0 && location?.longitude > 0) {
-      eventData.latitude = location?.latitude;
-      eventData.longitude = location?.longitude;
+    eventData.latitude = location?.latitude;
+    eventData.longitude = location?.longitude;
     // }
-    if(__DEV__){
-      console.log("events ",eventData)
+    if (__DEV__) {
+      console.log('events ', eventData);
     }
     try {
       const resp = await APIRequest.sendEvents(eventData);
-      console.log("resp ",resp)
+      if (__DEV__) {
+        console.log('resp ', resp);
+      }
       if (!resp.success) {
         SQLiteDB.saveEvents(JSON.stringify(eventData));
       }

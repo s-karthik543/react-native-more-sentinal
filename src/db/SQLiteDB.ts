@@ -139,6 +139,26 @@ class SQLiteInstance {
       }
     });
   }
+
+  deleteAllEvents() {
+    return new Promise((resolve, reject) => {
+      if (SQLiteInstance.database) {
+        const statement = 'DELETE FROM events';
+        runSqlQuery(SQLiteInstance.database, statement).then((response) => {
+          const { success, error } = response;
+          if (success) {
+            resolve(true);
+          } else if (error) {
+            reject({ message: error });
+          } else {
+            resolve(false);
+          }
+        });
+      } else {
+        reject({ message: 'Database failed' });
+      }
+    });
+  }
 }
 
 const DBInstance = new SQLiteInstance();

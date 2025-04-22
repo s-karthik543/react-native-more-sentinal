@@ -27,6 +27,9 @@ Sentinal.setUserId('12345')
 //track events
  Sentinal.trackEvents(eventName, payload);
 
+ //Clear the data on logut
+ Sentinal.clearData();
+
 ```
 
 

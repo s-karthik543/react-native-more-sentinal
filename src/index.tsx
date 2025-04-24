@@ -20,7 +20,17 @@ export default class AnalyticsManager {
     AnalyticsManager.url = config.url;
     AnalyticsManager.apiKey = config.api_key;
     APIRequest.init(config.url, config.api_key);
-    SQLiteDB.populateDB();
+    SQLiteDB.populateDB()
+      .then((result: boolean) => {
+        if (result) {
+          AnalyticsManager.syncOfflineData();
+        }
+      })
+      .catch((error) => {
+        if (__DEV__) {
+          console.log('DB sync error ', error);
+        }
+      });
   }
 
   static setUserId(id?: string) {
@@ -145,7 +155,7 @@ export default class AnalyticsManager {
         if (event) {
           try {
             const resp = await APIRequest.sendEvents(JSON.parse(event));
-            if (resp.data?.success) {
+            if (resp?.success) {
               await SQLiteDB.deleteEventId(id);
             }
           } catch (error) {

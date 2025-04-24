@@ -48,20 +48,25 @@ class SQLiteInstance {
       });
   }
 
-  populateDB() {
-    if (SQLiteInstance.database) {
-      const queries: Array<Queries> = [
-        {
-          statement: EVENTS_V1,
-          params: [],
-        },
-      ];
-      runSqlTransaction(SQLiteInstance.database, queries).then((response) => {
-        if (__DEV__) {
-          console.log('populateDB ', response);
-        }
-      });
-    }
+  populateDB(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (SQLiteInstance.database) {
+        const queries: Array<Queries> = [
+          {
+            statement: EVENTS_V1,
+            params: [],
+          },
+        ];
+        runSqlTransaction(SQLiteInstance.database, queries).then((response) => {
+          if (__DEV__) {
+            console.log('populateDB ', response);
+          }
+          resolve(true);
+        });
+      } else {
+        reject();
+      }
+    });
   }
 
   saveEvents(eventData: string) {

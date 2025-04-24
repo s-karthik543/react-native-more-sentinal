@@ -1,4 +1,4 @@
-import { Platform, PermissionsAndroid } from 'react-native';
+import { Platform, PermissionsAndroid, NativeModules } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import uuid from 'react-native-uuid';
 import Geolocation from 'react-native-geolocation-service';
@@ -6,6 +6,8 @@ import { check, PERMISSIONS } from 'react-native-permissions';
 import SQLiteDB from './db/SQLiteDB';
 import APIRequest from './API';
 import type { Config, Location } from './db/model';
+
+const { MoreSentinel } = NativeModules;
 
 const sessionId = uuid.v4();
 
@@ -20,6 +22,7 @@ export default class AnalyticsManager {
     AnalyticsManager.url = config.url;
     AnalyticsManager.apiKey = config.api_key;
     APIRequest.init(config.url, config.api_key);
+    MoreSentinel.setSessionId(sessionId)
     SQLiteDB.populateDB()
       .then((result: boolean) => {
         if (result) {
@@ -35,11 +38,13 @@ export default class AnalyticsManager {
 
   static setUserId(id?: string) {
     AnalyticsManager.userId = id;
+    MoreSentinel.setUserId(id)
   }
 
   static clearData() {
     AnalyticsManager.userId = undefined;
     SQLiteDB.deleteAllEvents();
+    MoreSentinel.clearData()
   }
 
   static getDeviceLocation(): Promise<Location> {

@@ -29,4 +29,19 @@ export default class APIRequest {
         });
     });
   }
+
+  static sendErrorLogs(data: any): Promise<any> {
+    return new Promise((resolve) => {
+      APIRequest.instance
+        .post('/logs', data)
+        .then((_: AxiosResponse) => {
+          resolve({ success: true });
+        })
+        .catch((_: AxiosError) => {
+          resolve({
+            success: false,
+          });
+        });
+    });
+  }
 }

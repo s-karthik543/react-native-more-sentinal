@@ -1,5 +1,5 @@
 import SQLite from 'react-native-sqlite-storage';
-import { EVENTS_V1 } from './schema';
+import { EVENTS_V1, LOGS_V1 } from './schema';
 import { runSqlTransaction, runSqlQuery } from './SQLiteService';
 import type { Queries } from './model';
 
@@ -56,6 +56,10 @@ class SQLiteInstance {
             statement: EVENTS_V1,
             params: [],
           },
+          {
+            statement: LOGS_V1,
+            params: [],
+          },
         ];
         runSqlTransaction(SQLiteInstance.database, queries).then((response) => {
           if (__DEV__) {
@@ -97,10 +101,60 @@ class SQLiteInstance {
     }
   }
 
+  saveLogs(logs: string) {
+    if (logs) {
+      if (SQLiteInstance.database) {
+        runSqlQuery(
+          SQLiteInstance.database,
+          'INSERT OR REPLACE INTO logs ( ' + 'log ) VALUES' + '(?)',
+          [logs]
+        )
+          .then((response) => {
+            if (__DEV__) {
+              console.log('Save logs response ', response);
+            }
+          })
+          .catch((error) => {
+            if (__DEV__) {
+              console.log('Save logs error ', error);
+            }
+          });
+      }
+    }
+  }
+
   getEvents(): Promise<Array<any>> {
     return new Promise((resolve, reject) => {
       if (SQLiteInstance.database) {
         const statement = 'SELECT * FROM events';
+        runSqlQuery(SQLiteInstance.database, statement)
+          .then((response) => {
+            const { success, error, results } = response;
+            if (success && results?.rows) {
+              const resultData = [];
+              for (let i = 0; i < results.rows.length; i++) {
+                resultData.push(results.rows.item(i));
+              }
+              resolve(resultData);
+            } else if (error) {
+              reject({ message: error });
+            } else {
+              reject({ message: 'Database failed' });
+            }
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      } else {
+        reject({ message: 'Database failed' });
+      }
+    });
+  }
+
+  getLogs(): Promise<Array<any>> {
+    return new Promise((resolve, reject) => {
+      if (SQLiteInstance.database) {
+        const statement = 'SELECT * FROM logs';
         runSqlQuery(SQLiteInstance.database, statement)
           .then((response) => {
             const { success, error, results } = response;
@@ -145,10 +199,50 @@ class SQLiteInstance {
     });
   }
 
+  deleteLogsId(id: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (SQLiteInstance.database) {
+        const statement = `DELETE FROM logs where id=${id}`;
+        runSqlQuery(SQLiteInstance.database, statement).then((response) => {
+          const { success, error } = response;
+          if (success) {
+            resolve(true);
+          } else if (error) {
+            reject({ message: error });
+          } else {
+            resolve(false);
+          }
+        });
+      } else {
+        reject({ message: 'Database failed' });
+      }
+    });
+  }
+
   deleteAllEvents() {
     return new Promise((resolve, reject) => {
       if (SQLiteInstance.database) {
         const statement = 'DELETE FROM events';
+        runSqlQuery(SQLiteInstance.database, statement).then((response) => {
+          const { success, error } = response;
+          if (success) {
+            resolve(true);
+          } else if (error) {
+            reject({ message: error });
+          } else {
+            resolve(false);
+          }
+        });
+      } else {
+        reject({ message: 'Database failed' });
+      }
+    });
+  }
+
+  deleteAllLogs() {
+    return new Promise((resolve, reject) => {
+      if (SQLiteInstance.database) {
+        const statement = 'DELETE FROM logs';
         runSqlQuery(SQLiteInstance.database, statement).then((response) => {
           const { success, error } = response;
           if (success) {

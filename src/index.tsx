@@ -9,6 +9,12 @@ import type { Config, Location } from './db/model';
 
 const { MoreSentinel } = NativeModules;
 
+ErrorUtils.setGlobalHandler((error, _) => {
+  if (error.message) {
+    AnalyticsManager.captureLogs(`${error}`);
+  }
+});
+
 const sessionId = uuid.v4();
 
 export default class AnalyticsManager {
@@ -22,11 +28,12 @@ export default class AnalyticsManager {
     AnalyticsManager.url = config.url;
     AnalyticsManager.apiKey = config.api_key;
     APIRequest.init(config.url, config.api_key);
-    MoreSentinel.setSessionId(sessionId)
+    MoreSentinel.setSessionId(sessionId);
     SQLiteDB.populateDB()
       .then((result: boolean) => {
         if (result) {
           AnalyticsManager.syncOfflineData();
+          AnalyticsManager.syncOfflineLogs();
         }
       })
       .catch((error) => {
@@ -38,13 +45,13 @@ export default class AnalyticsManager {
 
   static setUserId(id?: string) {
     AnalyticsManager.userId = id;
-    MoreSentinel.setUserId(id)
+    MoreSentinel.setUserId(id);
   }
 
   static clearData() {
     AnalyticsManager.userId = undefined;
     SQLiteDB.deleteAllEvents();
-    MoreSentinel.clearData()
+    MoreSentinel.clearData();
   }
 
   static getDeviceLocation(): Promise<Location> {
@@ -152,6 +159,56 @@ export default class AnalyticsManager {
     }
   }
 
+  static async captureLogs(error: string) {
+    const deviceID = await DeviceInfo.getUniqueId();
+    const manufacturer = await DeviceInfo.getDeviceName();
+    const carrier = await DeviceInfo.getCarrier();
+    const isEmulator = await DeviceInfo.isEmulator();
+    const batteryLevel = await DeviceInfo.getBatteryLevel();
+    const isCharging = await DeviceInfo.isBatteryCharging();
+    // const idfa = await ReactNativeIdfaAaid.getAdvertisingInfo();
+    const location = await AnalyticsManager.getDeviceLocation();
+    const logs: any = {
+      backtrace: error,
+      env: AnalyticsManager.env,
+      timestamp: Date.now(),
+      user_id: AnalyticsManager.userId || null,
+      sessionId: sessionId,
+      context: {
+        // advertisingId: idfa?.id,
+        device_id: deviceID,
+        os: Platform.OS,
+        os_version: Platform.Version,
+        device_model: DeviceInfo.getModel(),
+        manufacturer: manufacturer,
+        carrier: carrier,
+        app_version: DeviceInfo.getVersion(),
+        app_name: DeviceInfo.getApplicationName(),
+        is_emulator: isEmulator,
+        battery_level: batteryLevel,
+        is_charging: isCharging,
+      },
+    };
+    // if (location?.latitude > 0 && location?.longitude > 0) {
+    logs.latitude = location?.latitude;
+    logs.longitude = location?.longitude;
+    // }
+    if (__DEV__) {
+      console.log('logs ', logs);
+    }
+    try {
+      const resp = await APIRequest.sendErrorLogs(logs);
+      if (__DEV__) {
+        console.log('resp ', resp);
+      }
+      if (!resp.success) {
+        SQLiteDB.saveLogs(JSON.stringify(logs));
+      }
+    } catch (error) {
+      SQLiteDB.saveLogs(JSON.stringify(logs));
+    }
+  }
+
   static async syncOfflineData() {
     const offlineEvents = await SQLiteDB.getEvents();
     if (Array.isArray(offlineEvents) && offlineEvents.length > 0) {
@@ -170,6 +227,29 @@ export default class AnalyticsManager {
           }
         } else {
           await SQLiteDB.deleteEventId(id);
+        }
+      }
+    }
+  }
+
+  static async syncOfflineLogs() {
+    const offlineLogs = await SQLiteDB.getLogs();;
+    if (Array.isArray(offlineLogs) && offlineLogs.length > 0) {
+      for (let logs of offlineLogs) {
+        const { id, log } = logs;
+        if (log) {
+          try {
+            const resp = await APIRequest.sendErrorLogs(JSON.parse(log));
+            if (resp?.success) {
+              await SQLiteDB.deleteLogsId(id);
+            }
+          } catch (error) {
+            if (__DEV__) {
+              console.log('Offline log sync error ', error);
+            }
+          }
+        } else {
+          await SQLiteDB.deleteLogsId(id);
         }
       }
     }

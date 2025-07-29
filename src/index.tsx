@@ -28,7 +28,9 @@ export default class AnalyticsManager {
     AnalyticsManager.url = config.url;
     AnalyticsManager.apiKey = config.api_key;
     APIRequest.init(config.url, config.api_key);
-    MoreSentinel.setSessionId(sessionId);
+    if (Platform.OS === 'android') {
+      MoreSentinel.setSessionId(sessionId);
+    }
     SQLiteDB.populateDB()
       .then((result: boolean) => {
         if (result) {
@@ -45,13 +47,17 @@ export default class AnalyticsManager {
 
   static setUserId(id?: string) {
     AnalyticsManager.userId = id;
-    MoreSentinel.setUserId(id);
+    if (Platform.OS === 'android') {
+      MoreSentinel.setUserId(id);
+    }
   }
 
   static clearData() {
     AnalyticsManager.userId = undefined;
     SQLiteDB.deleteAllEvents();
-    MoreSentinel.clearData();
+    if (Platform.OS === 'android') {
+      MoreSentinel.clearData();
+    }
   }
 
   static getDeviceLocation(): Promise<Location> {
@@ -233,7 +239,7 @@ export default class AnalyticsManager {
   }
 
   static async syncOfflineLogs() {
-    const offlineLogs = await SQLiteDB.getLogs();;
+    const offlineLogs = await SQLiteDB.getLogs();
     if (Array.isArray(offlineLogs) && offlineLogs.length > 0) {
       for (let logs of offlineLogs) {
         const { id, log } = logs;
